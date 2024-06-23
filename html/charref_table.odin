@@ -1,4 +1,4 @@
-package browser
+package html
 
 Reference_Entry :: struct {
     name: string,

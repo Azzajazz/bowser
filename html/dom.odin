@@ -1,4 +1,4 @@
-package browser
+package html
 
 import "core:fmt"
 import "core:strings"

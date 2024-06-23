@@ -4,6 +4,9 @@ import "core:os"
 import "core:strings"
 import "core:fmt"
 
+import "css"
+import "html"
+
 main :: proc() {
     data, ok := os.read_entire_file(os.args[1])
     if !ok {
@@ -13,16 +16,16 @@ main :: proc() {
     reader: strings.Reader
     input_stream := strings.to_reader(&reader, string(data[:]))
 
-    tokenizer: Tokenizer
-    tokenizer_init(&tokenizer, input_stream)
+    tokenizer: html.Tokenizer
+    html.tokenizer_init(&tokenizer, input_stream)
 
-    parser: Html_Parser
-    parser_init(&parser, &tokenizer)
+    parser: html.Html_Parser
+    html.parser_init(&parser, &tokenizer)
 
-    document := Document{}
+    document := html.Document{}
     document.document = &document
-    construct_tree(&parser, &document)
-    print_document(&document)
+    html.construct_tree(&parser, &document)
+    html.print_document(&document)
 
     /*
     init_success := sdl2.Init(sdl2.INIT_VIDEO)
