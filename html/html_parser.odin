@@ -324,7 +324,7 @@ Parse_Error :: enum {
 }
 
 report_parse_error :: proc(error: Parse_Error, location := #caller_location) {
-    fmt.eprintfln("[ERROR] %s, %s", error, location)
+    fmt.eprintfln("[ERROR:Html Parser] %s, %s", error, location)
     if error == .ErrorInTreeConstruction do os.exit(1)
 }
 
