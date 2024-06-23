@@ -11,6 +11,8 @@ import "core:container/queue"
 import "vendor:sdl2"
 import "vendor:sdl2/ttf"
 
+import "../codepoints"
+
 string_is_any_of :: proc(to_match: string, options: ..string) -> bool {
     return slice.contains(options, to_match)
 }
@@ -326,116 +328,6 @@ report_parse_error :: proc(error: Parse_Error, location := #caller_location) {
     if error == .ErrorInTreeConstruction do os.exit(1)
 }
 
-// https://infra.spec.whatwg.org/#leading-surrogate
-// A leading surrogate is a code point that is in the range U+D800 to U+DBFF, inclusive. 
-is_leading_surrogate :: proc(r: rune) -> bool {
-    return r >= '\uD800' && r <= '\uDBFF'
-}
-
-// https://infra.spec.whatwg.org/#trailing-surrogate
-// A trailing surrogate is a code point that is in the range U+DC00 to U+DFFF, inclusive.
-is_trailing_surrogate :: proc(r: rune) -> bool {
-    return r >= '\uDC00' && r <= '\uDFFF'
-}
-
-// https://infra.spec.whatwg.org/#surrogate
-// A surrogate is a leading surrogate or a trailing surrogate. 
-is_surrogate :: proc(r: rune) -> bool {
-    return is_leading_surrogate(r) || is_trailing_surrogate(r)
-}
-
-// https://infra.spec.whatwg.org/#ascii-upper-alpha
-// An ASCII upper alpha is a code point in the range U+0041 (A) to U+005A (Z), inclusive. 
-is_ascii_upper_alpha :: proc(r: rune) -> bool {
-    return r >= 'A' && r <= 'Z'
-}
-
-// https://infra.spec.whatwg.org/#ascii-lower-alpha
-// An ASCII lower alpha is a code point in the range U+0061 (a) to U+007A (z), inclusive. 
-is_ascii_lower_alpha :: proc(r: rune) -> bool {
-    return r >= 'a'  && r <= 'z'
-}
-
-// https://infra.spec.whatwg.org/#ascii-alpha
-// An ASCII alpha is an ASCII upper alpha or ASCII lower alpha. 
-is_ascii_alpha :: proc(r: rune) -> bool {
-    return is_ascii_upper_alpha(r) || is_ascii_lower_alpha(r)
-}
-
-// https://infra.spec.whatwg.org/#ascii-whitespace
-// ASCII whitespace is U+0009 TAB, U+000A LF, U+000C FF, U+000D CR, or U+0020 SPACE.
-is_ascii_whitespace :: proc(r: rune) -> bool {
-    return r == '\t' || r == '\n' || r == '\f' || r == '\r' || r == ' '
-}
-
-// https://infra.spec.whatwg.org/#ascii-digit
-// An ASCII digit is a code point in the range U+0030 (0) to U+0039 (9), inclusive.
-is_ascii_digit :: proc(r: rune) -> bool {
-    return r >= '0' && r <= '9'
-}
-
-// https://infra.spec.whatwg.org/#ascii-alphanumeric
-// An ASCII alphanumeric is an ASCII digit or ASCII alpha.
-is_ascii_alphanumeric :: proc(r: rune) -> bool {
-    return is_ascii_alpha(r) || is_ascii_digit(r)
-}
-
-// https://infra.spec.whatwg.org/#noncharacter
-/*
-A noncharacter is a code point that is in the range U+FDD0 to U+FDEF, inclusive, or U+FFFE, U+FFFF, U+1FFFE, U+1FFFF, U+2FFFE, U+2FFFF, U+3FFFE, U+3FFFF,
-U+4FFFE, U+4FFFF, U+5FFFE, U+5FFFF, U+6FFFE, U+6FFFF, U+7FFFE, U+7FFFF, U+8FFFE, U+8FFFF, U+9FFFE, U+9FFFF, U+AFFFE, U+AFFFF, U+BFFFE, U+BFFFF, U+CFFFE,
-U+CFFFF, U+DFFFE, U+DFFFF, U+EFFFE, U+EFFFF, U+FFFFE, U+FFFFF, U+10FFFE, or U+10FFFF.
-*/
-is_noncharacter :: proc(r: rune) -> bool {
-    return (r >= '\uFDD0' && r <= '\uFDEF') \
-        || r == '\uFFFE' \
-        || r == '\uFFFF' \
-        || r == '\U0001FFFE' \
-        || r == '\U0001FFFF' \
-        || r == '\U0002FFFE' \
-        || r == '\U0002FFFF' \
-        || r == '\U0003FFFE' \
-        || r == '\U0003FFFF' \
-        || r == '\U0004FFFE' \
-        || r == '\U0004FFFF' \
-        || r == '\U0005FFFE' \
-        || r == '\U0005FFFF' \
-        || r == '\U0006FFFE' \
-        || r == '\U0006FFFF' \
-        || r == '\U0007FFFE' \
-        || r == '\U0007FFFF' \
-        || r == '\U0008FFFE' \
-        || r == '\U0008FFFF' \
-        || r == '\U0009FFFE' \
-        || r == '\U0009FFFF' \
-        || r == '\U000AFFFE' \
-        || r == '\U000AFFFF' \
-        || r == '\U000BFFFE' \
-        || r == '\U000BFFFF' \
-        || r == '\U000CFFFE' \
-        || r == '\U000CFFFF' \
-        || r == '\U000DFFFE' \
-        || r == '\U000DFFFF' \
-        || r == '\U000EFFFE' \
-        || r == '\U000EFFFF' \
-        || r == '\U000FFFFE' \
-        || r == '\U000FFFFF' \
-        || r == '\U0010FFFE' \
-        || r == '\U0010FFFF'
-}
-
-// https://infra.spec.whatwg.org/#c0-control
-// A C0 control is a code point in the range U+0000 NULL to U+001F INFORMATION SEPARATOR ONE, inclusive.
-is_c0_control :: proc(r: rune) -> bool {
-    return r >= '\u0000' && r <= '\u001F'
-}
-
-// https://infra.spec.whatwg.org/#control
-// A control is a C0 control or a code point in the range U+007F DELETE to U+009F APPLICATION PROGRAM COMMAND, inclusive. 
-is_control :: proc(r: rune) -> bool {
-    return is_c0_control(r) || (r >= '\u007F' && r <= '\u009F')
-}
-
 // https://html.spec.whatwg.org/#the-insertion-mode
 // The insertion mode is a state variable that controls the primary operation of the tree construction stage.
 Insertion_Mode :: enum {
@@ -465,7 +357,7 @@ Insertion_Mode :: enum {
 }
 
 // https://html.spec.whatwg.org/#tokenization
-Token :: union {
+Html_Token :: union {
     Doctype_Token,
     Tag_Token,
     Comment_Token,
@@ -473,12 +365,12 @@ Token :: union {
     Eof_Token,
 }
 
-is_eof :: proc(token: Token) -> bool {
+is_eof :: proc(token: Html_Token) -> bool {
     _, ok := token.(Eof_Token)
     return ok
 }
 
-print_token :: proc(token: Token) {
+print_token :: proc(token: Html_Token) {
     switch t in token {
         case Doctype_Token:
             fmt.print("DOCTYPE(")
@@ -551,7 +443,7 @@ Character_Token :: struct {
 
 Eof_Token :: struct {}
 
-Tokenizer_State :: enum {
+Html_Tokenizer_State :: enum {
     Data,
     CharacterReference,
     TagOpen,
@@ -587,16 +479,16 @@ Tokenizer_State :: enum {
     RawTextEndTagName,
 }
 
-Tokenizer :: struct {
+Html_Tokenizer :: struct {
     input_stream: io.Reader,
     consumed_characters: queue.Queue(rune), // Peeked characters are stored here
     // @NOTE: Maybe this can be used to eliminate the need for last_character
 
-    state: Tokenizer_State,
-    return_state: Tokenizer_State,
+    state: Html_Tokenizer_State,
+    return_state: Html_Tokenizer_State,
     temporary_buffer: strings.Builder, // Used for character references
 
-    current_token: Token,
+    current_token: Html_Token,
     // Pointer to the last attribute in the list for the current_token. Ignored if current_token does not have attributes
     current_attribute: ^Attribute,
 
@@ -607,16 +499,16 @@ Tokenizer :: struct {
     last_start_tag_name: string,
     
     // Holds the tokens that are to be emitted. We use a queue because the specification sometimes forces the tokenizer to emit multiple tokens.
-    to_emit: queue.Queue(Token),
+    to_emit: queue.Queue(Html_Token),
 }
 
-tokenizer_init :: proc(tokenizer: ^Tokenizer, input_stream: io.Reader) {
+tokenizer_init :: proc(tokenizer: ^Html_Tokenizer, input_stream: io.Reader) {
     tokenizer.input_stream = input_stream
     tokenizer.state = .Data
     tokenizer.return_state = .Data
 }
 
-emit :: proc(tokenizer: ^Tokenizer, token: Token) {
+emit :: proc(tokenizer: ^Html_Tokenizer, token: Html_Token) {
     queue.push_back(&tokenizer.to_emit, token)
     if tag, is_tag := token.(Tag_Token); is_tag && tag.is_start {
         tokenizer.last_start_tag_name = strings.to_string(tag.name)
@@ -626,13 +518,13 @@ emit :: proc(tokenizer: ^Tokenizer, token: Token) {
 // https://html.spec.whatwg.org/#appropriate-end-tag-token
 // An appropriate end tag token is an end tag token whose tag name matches the tag name of the last start tag to have been emitted from this tokenizer,
 // if any. If no start tag has been emitted from this tokenizer, then no end tag token is appropriate.
-is_appropriate_end_tag :: proc(tokenizer: ^Tokenizer) -> bool {
+is_appropriate_end_tag :: proc(tokenizer: ^Html_Tokenizer) -> bool {
     tag, is_tag := tokenizer.current_token.(Tag_Token)
     return is_tag && !tag.is_start && strings.to_string(tag.name) == tokenizer.last_start_tag_name
 }
 
 // https://html.spec.whatwg.org/#flush-code-points-consumed-as-a-character-reference
-flush_code_points :: proc(tokenizer: ^Tokenizer) {
+flush_code_points :: proc(tokenizer: ^Html_Tokenizer) {
     #partial switch tokenizer.return_state {
         case .AttributeValueDoubleQuoted: fallthrough
         case .AttributeValueSingleQuoted: fallthrough
@@ -647,7 +539,7 @@ flush_code_points :: proc(tokenizer: ^Tokenizer) {
     strings.builder_reset(&tokenizer.temporary_buffer)
 }
 
-input_starts_with :: proc(tokenizer: ^Tokenizer, prefix: string) -> bool {
+input_starts_with :: proc(tokenizer: ^Html_Tokenizer, prefix: string) -> bool {
     prefix_len := len(prefix)
     for prefix_len > queue.len(tokenizer.consumed_characters) {
         consume_character_from_input_stream(tokenizer)
@@ -660,7 +552,7 @@ input_starts_with :: proc(tokenizer: ^Tokenizer, prefix: string) -> bool {
     return true
 }
 
-input_starts_with_case_insensitive :: proc(tokenizer: ^Tokenizer, prefix: string) -> bool {
+input_starts_with_case_insensitive :: proc(tokenizer: ^Html_Tokenizer, prefix: string) -> bool {
     prefix_len := len(prefix)
     for prefix_len > queue.len(tokenizer.consumed_characters) {
         consume_character_from_input_stream(tokenizer)
@@ -673,7 +565,7 @@ input_starts_with_case_insensitive :: proc(tokenizer: ^Tokenizer, prefix: string
     return true
 }
 
-consume :: proc(tokenizer: ^Tokenizer, prefix: string) {
+consume :: proc(tokenizer: ^Html_Tokenizer, prefix: string) {
     prefix_len := len(prefix)
     to_consume_from_peeked := min(prefix_len, queue.len(tokenizer.consumed_characters))
     queue.consume_front(&tokenizer.consumed_characters, to_consume_from_peeked)
@@ -681,7 +573,7 @@ consume :: proc(tokenizer: ^Tokenizer, prefix: string) {
     io.seek(tokenizer.input_stream, cast(i64)(prefix_len - to_consume_from_peeked), .Current)
 }
 
-get_maximal_character_reference :: proc(tokenizer: ^Tokenizer) -> (entry: Reference_Entry, found: bool) {
+get_maximal_character_reference :: proc(tokenizer: ^Html_Tokenizer) -> (entry: Reference_Entry, found: bool) {
     for entry in charref_table {
         if input_starts_with(tokenizer, entry.name) {
             consume(tokenizer, entry.name)
@@ -691,11 +583,11 @@ get_maximal_character_reference :: proc(tokenizer: ^Tokenizer) -> (entry: Refere
     return Reference_Entry{}, false
 }
 
-reconsume :: proc(tokenizer: ^Tokenizer) {
+reconsume :: proc(tokenizer: ^Html_Tokenizer) {
     queue.push_front(&tokenizer.consumed_characters, tokenizer.last_character) 
 }
 
-get_next_character :: proc(tokenizer: ^Tokenizer) -> (char: rune, error: io.Error) {
+get_next_character :: proc(tokenizer: ^Html_Tokenizer) -> (char: rune, error: io.Error) {
     if queue.len(tokenizer.consumed_characters) == 0 {
         err := consume_character_from_input_stream(tokenizer)
         if err != .None do return 0, err
@@ -704,7 +596,7 @@ get_next_character :: proc(tokenizer: ^Tokenizer) -> (char: rune, error: io.Erro
     return tokenizer.last_character, .None
 }
 
-DEBUG_print_next_few_characters :: proc(tokenizer: ^Tokenizer, n: int) {
+DEBUG_print_next_few_characters :: proc(tokenizer: ^Html_Tokenizer, n: int) {
     for i in 0..<n {
         r, r_err := get_next_character(tokenizer)
         fmt.print(r)
@@ -713,7 +605,7 @@ DEBUG_print_next_few_characters :: proc(tokenizer: ^Tokenizer, n: int) {
     os.exit(1)
 }
 
-peek_next_character :: proc(tokenizer: ^Tokenizer) -> (char: rune, error: io.Error) {
+peek_next_character :: proc(tokenizer: ^Html_Tokenizer) -> (char: rune, error: io.Error) {
     if queue.len(tokenizer.consumed_characters) == 0 {
         err := consume_character_from_input_stream(tokenizer)
         if err != .None do return 0, err
@@ -722,7 +614,7 @@ peek_next_character :: proc(tokenizer: ^Tokenizer) -> (char: rune, error: io.Err
 }
 
 // https://html.spec.whatwg.org/#preprocessing-the-input-stream
-consume_character_from_input_stream :: proc(tokenizer: ^Tokenizer) -> io.Error {
+consume_character_from_input_stream :: proc(tokenizer: ^Html_Tokenizer) -> io.Error {
     r, _, err := io.read_rune(tokenizer.input_stream)
     if err != .None do return err
 
@@ -746,11 +638,11 @@ consume_character_from_input_stream :: proc(tokenizer: ^Tokenizer) -> io.Error {
 
 
     // Any occurrences of surrogates are surrogate-in-input-stream parse errors.
-    if is_surrogate(r) do report_parse_error(.SurrogateInInputStream)
+    if codepoints.is_surrogate(r) do report_parse_error(.SurrogateInInputStream)
     // Any occurrences of noncharacters are noncharacter-in-input-stream parse errors
-    if is_noncharacter(r) do report_parse_error(.NoncharacterInInputStream)
+    if codepoints.is_noncharacter(r) do report_parse_error(.NoncharacterInInputStream)
     // and any occurrences of controls other than ASCII whitespace and U+0000 NULL characters are control-character-in-input-stream parse errors.
-    if is_control(r) && r != ' ' && r != '\u0000' {
+    if codepoints.is_control(r) && r != ' ' && r != '\u0000' {
         report_parse_error(.ControlCharacterInInputStream)
     }
 
@@ -758,13 +650,13 @@ consume_character_from_input_stream :: proc(tokenizer: ^Tokenizer) -> io.Error {
     return .None
 }
 
-add_attribute_to_current_token :: proc(tokenizer: ^Tokenizer) {
+add_attribute_to_current_token :: proc(tokenizer: ^Html_Tokenizer) {
     tag := &tokenizer.current_token.(Tag_Token)
     append(&tag.attributes, Attribute{})
     tokenizer.current_attribute = slice.last_ptr(tag.attributes[:])
 }
 
-get_next_token :: proc(tokenizer: ^Tokenizer) -> Token {
+get_next_token :: proc(tokenizer: ^Html_Tokenizer) -> Html_Token {
     for queue.len(tokenizer.to_emit) == 0 {
         // fmt.printfln("In %s state", tokenizer.state)
         #partial switch tokenizer.state {
@@ -869,7 +761,7 @@ get_next_token :: proc(tokenizer: ^Tokenizer) -> Token {
                     // Switch to the end tag open state.
                     tokenizer.state = .EndTagOpen
                 }
-                else if is_ascii_alpha(r) { // ASCII alpha
+                else if codepoints.is_ascii_alpha(r) { // ASCII alpha
                     // Create a new start tag token, set its tag name to the empty string. Reconsume in the tag name state.
                     tokenizer.current_token = Tag_Token{is_start = true}
                     reconsume(tokenizer)
@@ -975,7 +867,7 @@ get_next_token :: proc(tokenizer: ^Tokenizer) -> Token {
                 // U+0020 SPACE
                     // Ignore the character.
                 }
-                else if is_ascii_upper_alpha(r) { // ASCII upper alpha
+                else if codepoints.is_ascii_upper_alpha(r) { // ASCII upper alpha
                     // Create a new DOCTYPE token. Set the token's name to the lowercase version of the current input character
                     // (add 0x0020 to the character's code point). Switch to the DOCTYPE name state.
                     tokenizer.current_token = Doctype_Token{}
@@ -1033,7 +925,7 @@ get_next_token :: proc(tokenizer: ^Tokenizer) -> Token {
                     tokenizer.state = .Data
                     emit(tokenizer, tokenizer.current_token)
                 }
-                else if is_ascii_upper_alpha(r) { // ASCII upper alpha
+                else if codepoints.is_ascii_upper_alpha(r) { // ASCII upper alpha
                     // Append the lowercase version of the current input character (add 0x0020 to the character's code point) to the current DOCTYPE token's name.
                     current_token := &tokenizer.current_token.(Doctype_Token)
                     fmt.sbprint(&current_token.name, r + cast(rune)0x0020)
@@ -1078,7 +970,7 @@ get_next_token :: proc(tokenizer: ^Tokenizer) -> Token {
                     tokenizer.state = .Data
                     emit(tokenizer, tokenizer.current_token)
                 }
-                else if is_ascii_upper_alpha(r) { // ASCII upper alpha
+                else if codepoints.is_ascii_upper_alpha(r) { // ASCII upper alpha
                     // Append the lowercase version of the current input character (add 0x0020 to the character's code point) to the current tag token's tag name.
                     current_token := &tokenizer.current_token.(Tag_Token)
                     fmt.sbprint(&current_token.name, r + cast(rune)0x0020)
@@ -1150,7 +1042,7 @@ get_next_token :: proc(tokenizer: ^Tokenizer) -> Token {
                     // Switch to the before attribute value state.
                     tokenizer.state = .BeforeAttributeValue
                 }
-                else if is_ascii_upper_alpha(r) { // ASCII upper alpha
+                else if codepoints.is_ascii_upper_alpha(r) { // ASCII upper alpha
                     // Append the lowercase version of the current input character (add 0x0020 to the character's code point) to the current attribute's name.
                     fmt.sbprint(&tokenizer.current_attribute.name, r + cast(rune)0x0020)
                 }
@@ -1279,7 +1171,7 @@ get_next_token :: proc(tokenizer: ^Tokenizer) -> Token {
                     emit(tokenizer, Character_Token{'/'})
                     emit(tokenizer, Eof_Token{})
                 }
-                else if is_ascii_alpha(r) { // ASCII alpha
+                else if codepoints.is_ascii_alpha(r) { // ASCII alpha
                     // Create a new end tag token, set its tag name to the empty string. Reconsume in the tag name state. 
                     tokenizer.current_token = Tag_Token{is_start=false}
                     reconsume(tokenizer)
@@ -1368,7 +1260,7 @@ get_next_token :: proc(tokenizer: ^Tokenizer) -> Token {
                 fmt.sbprint(&tokenizer.temporary_buffer, '&')
                 r, r_err := get_next_character(tokenizer)
 
-                if is_ascii_alphanumeric(r) { // ASCII alphanumeric
+                if codepoints.is_ascii_alphanumeric(r) { // ASCII alphanumeric
                     // Reconsume in the named character reference state.
                     reconsume(tokenizer)
                     tokenizer.state = .NamedCharacterReference
@@ -1399,7 +1291,7 @@ get_next_token :: proc(tokenizer: ^Tokenizer) -> Token {
                     // for historical reasons, flush code points consumed as a character reference and switch to the return state.
                     last_in_name := entry.name[len(entry.name) - 1]
                     next, err := peek_next_character(tokenizer)
-                    if last_in_name != ';' && (next == '=' || is_ascii_alphanumeric(next)) {
+                    if last_in_name != ';' && (next == '=' || codepoints.is_ascii_alphanumeric(next)) {
                         flush_code_points(tokenizer)
                         tokenizer.state = tokenizer.return_state
                     }
@@ -1452,7 +1344,7 @@ get_next_token :: proc(tokenizer: ^Tokenizer) -> Token {
                 // Consume the next input character:
                 r, r_err := get_next_character(tokenizer)
 
-                if is_ascii_alpha(r) { // ASCII alpha
+                if codepoints.is_ascii_alpha(r) { // ASCII alpha
                     // Create a new end tag token, set its tag name to the empty string. Reconsume in the RCDATA end tag name state. 
                     tokenizer.current_token = Tag_Token{is_start=false}
                     reconsume(tokenizer)
@@ -1516,13 +1408,13 @@ get_next_token :: proc(tokenizer: ^Tokenizer) -> Token {
                         tokenizer.state = .RCData
                     }
                 }
-                else if is_ascii_upper_alpha(r) { // ASCII upper alpha
+                else if codepoints.is_ascii_upper_alpha(r) { // ASCII upper alpha
                     // Append the lowercase version of the current input character (add 0x0020 to the character's code point) to the current tag token's tag
                     // name. Append the current input character to the temporary buffer.
                     current_token := &tokenizer.current_token.(Tag_Token)
                     fmt.sbprint(&current_token.name, r + cast(rune)0x0020)
                 }
-                else if is_ascii_lower_alpha(r) { // ASCII lower alpha
+                else if codepoints.is_ascii_lower_alpha(r) { // ASCII lower alpha
                     // Append the current input character to the current tag token's tag name. Append the current input character to the temporary buffer.
                     current_token := &tokenizer.current_token.(Tag_Token)
                     fmt.sbprint(&current_token.name, r)
@@ -1564,7 +1456,7 @@ get_next_token :: proc(tokenizer: ^Tokenizer) -> Token {
                 // Consume the next input character:
                 r, r_err := get_next_character(tokenizer)
 
-                if is_ascii_alpha(r) { // ASCII alpha
+                if codepoints.is_ascii_alpha(r) { // ASCII alpha
                     // Create a new end tag token, set its tag name to the empty string. Reconsume in the RAWTEXT end tag name state. 
                     tokenizer.current_token = Tag_Token{is_start=false}
                     reconsume(tokenizer)
@@ -1632,14 +1524,14 @@ get_next_token :: proc(tokenizer: ^Tokenizer) -> Token {
                         tokenizer.state = .RawText
                     }
                 }
-                else if is_ascii_upper_alpha(r) { // ASCII upper alpha
+                else if codepoints.is_ascii_upper_alpha(r) { // ASCII upper alpha
                     // Append the lowercase version of the current input character (add 0x0020 to the character's code point) to the current tag token's tag name.
                     // Append the current input character to the temporary buffer.
                     current_token := &tokenizer.current_token.(Tag_Token)
                     fmt.sbprint(&current_token.name, r + cast(rune)0x0020)
                     fmt.sbprint(&tokenizer.temporary_buffer, r)
                 }
-                else if is_ascii_lower_alpha(r) { // ASCII lower alpha
+                else if codepoints.is_ascii_lower_alpha(r) { // ASCII lower alpha
                     // Append the current input character to the current tag token's tag name. Append the current input character to the temporary buffer.
                     current_token := &tokenizer.current_token.(Tag_Token)
                     fmt.sbprint(&current_token.name, r)
@@ -1672,7 +1564,7 @@ Marker :: struct {}
 Active_Formatting_Element :: union {Marker, ^Element}
 
 Html_Parser :: struct { 
-    tokenizer: ^Tokenizer,
+    tokenizer: ^Html_Tokenizer,
 
     // https://html.spec.whatwg.org/#the-insertion-mode
     insertion_mode: Insertion_Mode,
@@ -1696,14 +1588,14 @@ Html_Parser :: struct {
     foster_parenting: bool,
 
     // Used for reprocessing
-    last_token: Token,
+    last_token: Html_Token,
     should_reprocess: bool,
 
     // https://html.spec.whatwg.org/#concept-pending-table-char-tokens
     pending_table_character_tokens: [dynamic]Character_Token,
 }
 
-parser_init :: proc(parser: ^Html_Parser, tokenizer: ^Tokenizer) {
+parser_init :: proc(parser: ^Html_Parser, tokenizer: ^Html_Tokenizer) {
     parser.tokenizer = tokenizer
     parser.insertion_mode = .Initial
     parser.stack_of_open_elements = make([dynamic]^Element)
@@ -1999,7 +1891,7 @@ reset_insertion_mode_appropriately :: proc(parser: ^Html_Parser) {
 // https://html.spec.whatwg.org/#tree-construction-dispatcher
 // As each token is emitted from the tokenizer, the user agent must follow the appropriate steps from the following list, known as the tree construction dispatcher:
 dispatch_next_token :: proc(parser: ^Html_Parser, document: ^Document) -> (should_continue: bool) {
-    token: Token = ---
+    token: Html_Token = ---
     if parser.should_reprocess {
         token = parser.last_token
         parser.should_reprocess = false
@@ -2033,17 +1925,17 @@ construct_tree :: proc(parser: ^Html_Parser, document: ^Document) {
     }
 }
 
-is_start_tag :: proc(token: Token) -> bool {
+is_start_tag :: proc(token: Html_Token) -> bool {
     tag, is_tag := token.(Tag_Token)
     return is_tag && tag.is_start
 }
 
-is_end_tag :: proc(token: Token) -> bool {
+is_end_tag :: proc(token: Html_Token) -> bool {
     tag, is_tag := token.(Tag_Token)
     return is_tag && !tag.is_start
 }
 
-is_start_tag_named_one_of :: proc(token: Token, names: ..string) -> bool {
+is_start_tag_named_one_of :: proc(token: Html_Token, names: ..string) -> bool {
     tag, is_tag := token.(Tag_Token)
     if !is_tag do return false
     if !tag.is_start do return false
@@ -2055,7 +1947,7 @@ is_start_tag_named_one_of :: proc(token: Token, names: ..string) -> bool {
     return false
 }
 
-is_end_tag_named_one_of :: proc(token: Token, names: ..string) -> bool {
+is_end_tag_named_one_of :: proc(token: Html_Token, names: ..string) -> bool {
     tag, is_tag := token.(Tag_Token)
     if !is_tag do return false
     if tag.is_start do return false
@@ -2115,7 +2007,7 @@ insert_character :: proc(parser: ^Html_Parser, document: ^Document, token: Chara
     insert_node_at_location(text, insertion_elem, insertion_index)
 }
 
-process_token_as_html_content :: proc(parser: ^Html_Parser, document: ^Document, token: Token) -> (should_continue: bool) {
+process_token_as_html_content :: proc(parser: ^Html_Parser, document: ^Document, token: Html_Token) -> (should_continue: bool) {
     #partial switch parser.insertion_mode {
         case .Initial: return handle_initial_insertion_mode(parser, document, token)
         case .BeforeHtml: return handle_before_html_insertion_mode(parser, document, token)
@@ -2142,7 +2034,7 @@ process_token_as_html_content :: proc(parser: ^Html_Parser, document: ^Document,
 
 // https://html.spec.whatwg.org/#the-initial-insertion-mode
 // When the user agent is to apply the rules for the "initial" insertion mode, the user agent must handle the token as follows:
-handle_initial_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Token) -> (should_continue: bool) {
+handle_initial_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Html_Token) -> (should_continue: bool) {
     character, is_character := token.(Character_Token)
     comment, is_comment := token.(Comment_Token)
     doctype, is_doctype := token.(Doctype_Token)
@@ -2190,7 +2082,7 @@ handle_initial_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document,
 
 // https://html.spec.whatwg.org/#the-before-html-insertion-mode
 // When the user agent is to apply the rules for the "before html" insertion mode, the user agent must handle the token as follows:
-handle_before_html_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Token) -> (should_continue: bool) {
+handle_before_html_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Html_Token) -> (should_continue: bool) {
     character, is_character := token.(Character_Token)
     comment, is_comment := token.(Comment_Token)
     doctype, is_doctype := token.(Doctype_Token)
@@ -2243,7 +2135,7 @@ handle_before_html_insertion_mode :: proc(parser: ^Html_Parser, document: ^Docum
 
 // https://html.spec.whatwg.org/#the-before-head-insertion-mode
 // When the user agent is to apply the rules for the "before head" insertion mode, the user agent must handle the token as follows:
-handle_before_head_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Token) -> (should_continue: bool) {
+handle_before_head_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Html_Token) -> (should_continue: bool) {
     character, is_character := token.(Character_Token)
     comment, is_comment := token.(Comment_Token)
     doctype, is_doctype := token.(Doctype_Token)
@@ -2304,7 +2196,7 @@ handle_before_head_insertion_mode :: proc(parser: ^Html_Parser, document: ^Docum
 
 // https://html.spec.whatwg.org/#parsing-main-inhead
 // When the user agent is to apply the rules for the "in head" insertion mode, the user agent must handle the token as follows:
-handle_in_head_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Token) -> (should_continue: bool) {
+handle_in_head_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Html_Token) -> (should_continue: bool) {
     character, is_character := token.(Character_Token)
     comment, is_comment := token.(Comment_Token)
     doctype, is_doctype := token.(Doctype_Token)
@@ -2464,7 +2356,7 @@ handle_in_head_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document,
 
 // https://html.spec.whatwg.org/#the-after-head-insertion-mode
 // When the user agent is to apply the rules for the "after head" insertion mode, the user agent must handle the token as follows:
-handle_after_head_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Token) -> (should_continue: bool) {
+handle_after_head_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Html_Token) -> (should_continue: bool) {
     character, is_character := token.(Character_Token)
     comment, is_comment := token.(Comment_Token)
     doctype, is_doctype := token.(Doctype_Token)
@@ -2545,7 +2437,7 @@ handle_after_head_insertion_mode :: proc(parser: ^Html_Parser, document: ^Docume
 
 // https://html.spec.whatwg.org/#parsing-main-inbody
 // When the user agent is to apply the rules for the "in body" insertion mode, the user agent must handle the token as follows:
-handle_in_body_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Token) -> (should_continue: bool) {
+handle_in_body_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Html_Token) -> (should_continue: bool) {
     character, is_character := token.(Character_Token)
     comment, is_comment := token.(Comment_Token)
     doctype, is_doctype := token.(Doctype_Token)
@@ -3322,7 +3214,7 @@ create_element_for_token :: proc(token: Tag_Token, given_namespace: string, inte
 
 // https://html.spec.whatwg.org/#parsing-main-incdata
 // When the user agent is to apply the rules for the "text" insertion mode, the user agent must handle the token as follows:
-handle_text_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Token) -> (should_continue: bool) {
+handle_text_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Html_Token) -> (should_continue: bool) {
     character, is_character := token.(Character_Token)
     comment, is_comment := token.(Comment_Token)
     doctype, is_doctype := token.(Doctype_Token)
@@ -3388,7 +3280,7 @@ handle_text_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, to
 
 // https://html.spec.whatwg.org/#parsing-main-intable
 // When the user agent is to apply the rules for the "in table" insertion mode, the user agent must handle the token as follows:
-handle_in_table_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Token) -> (should_continue: bool) {
+handle_in_table_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Html_Token) -> (should_continue: bool) {
     character, is_character := token.(Character_Token)
     comment, is_comment := token.(Comment_Token)
     doctype, is_doctype := token.(Doctype_Token)
@@ -3550,7 +3442,7 @@ handle_in_table_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document
 
 // https://html.spec.whatwg.org/#parsing-main-intabletext
 // When the user agent is to apply the rules for the "in table text" insertion mode, the user agent must handle the token as follows:
-handle_in_table_text_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Token) -> (should_continue: bool) {
+handle_in_table_text_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Html_Token) -> (should_continue: bool) {
     character, is_character := token.(Character_Token)
     comment, is_comment := token.(Comment_Token)
     doctype, is_doctype := token.(Doctype_Token)
@@ -3568,7 +3460,7 @@ handle_in_table_text_insertion_mode :: proc(parser: ^Html_Parser, document: ^Doc
         // If any of the tokens in the pending table character tokens list are character tokens that are not ASCII whitespace, then this is a parse error:
         // reprocess the character tokens in the pending table character tokens list using the rules given in the "anything else" entry in the "in table" insertion mode.
         for char in parser.pending_table_character_tokens {
-            if !is_ascii_whitespace(char.data) {
+            if !codepoints.is_ascii_whitespace(char.data) {
                 report_parse_error(.ErrorInTreeConstruction)
                 parser.foster_parenting = true
                 handle_in_body_insertion_mode(parser, document, token)
@@ -3592,7 +3484,7 @@ handle_in_table_text_insertion_mode :: proc(parser: ^Html_Parser, document: ^Doc
 
 // https://html.spec.whatwg.org/#parsing-main-intbody
 // When the user agent is to apply the rules for the "in table body" insertion mode, the user agent must handle the token as follows:
-handle_in_table_body_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Token) -> (should_continue: bool) {
+handle_in_table_body_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Html_Token) -> (should_continue: bool) {
     character, is_character := token.(Character_Token)
     comment, is_comment := token.(Comment_Token)
     doctype, is_doctype := token.(Doctype_Token)
@@ -3667,7 +3559,7 @@ handle_in_table_body_insertion_mode :: proc(parser: ^Html_Parser, document: ^Doc
 
 // https://html.spec.whatwg.org/#parsing-main-intr
 // When the user agent is to apply the rules for the "in row" insertion mode, the user agent must handle the token as follows:
-handle_in_row_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Token) -> (should_continue: bool) {
+handle_in_row_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Html_Token) -> (should_continue: bool) {
     character, is_character := token.(Character_Token)
     comment, is_comment := token.(Comment_Token)
     doctype, is_doctype := token.(Doctype_Token)
@@ -3746,7 +3638,7 @@ handle_in_row_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, 
 
 // https://html.spec.whatwg.org/#parsing-main-intd
 // When the user agent is to apply the rules for the "in cell" insertion mode, the user agent must handle the token as follows:
-handle_in_cell_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Token) -> (should_continue: bool) {
+handle_in_cell_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Html_Token) -> (should_continue: bool) {
     character, is_character := token.(Character_Token)
     comment, is_comment := token.(Comment_Token)
     doctype, is_doctype := token.(Doctype_Token)
@@ -3806,7 +3698,7 @@ handle_in_cell_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document,
 
 // https://html.spec.whatwg.org/#parsing-main-afterbody
 // When the user agent is to apply the rules for the "after body" insertion mode, the user agent must handle the token as follows:
-handle_after_body_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Token) -> (should_continue: bool) {
+handle_after_body_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Html_Token) -> (should_continue: bool) {
     character, is_character := token.(Character_Token)
     comment, is_comment := token.(Comment_Token)
     doctype, is_doctype := token.(Doctype_Token)
@@ -3852,7 +3744,7 @@ handle_after_body_insertion_mode :: proc(parser: ^Html_Parser, document: ^Docume
 
 // https://html.spec.whatwg.org/#the-after-after-body-insertion-mode
 // When the user agent is to apply the rules for the "after after body" insertion mode, the user agent must handle the token as follows:
-handle_after_after_body_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Token) -> (should_continue: bool) {
+handle_after_after_body_insertion_mode :: proc(parser: ^Html_Parser, document: ^Document, token: Html_Token) -> (should_continue: bool) {
     character, is_character := token.(Character_Token)
     comment, is_comment := token.(Comment_Token)
     doctype, is_doctype := token.(Doctype_Token)

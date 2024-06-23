@@ -16,7 +16,7 @@ main :: proc() {
     reader: strings.Reader
     input_stream := strings.to_reader(&reader, string(data[:]))
 
-    tokenizer: html.Tokenizer
+    tokenizer: html.Html_Tokenizer
     html.tokenizer_init(&tokenizer, input_stream)
 
     parser: html.Html_Parser
