@@ -7,10 +7,10 @@ import "core:fmt"
 import "css"
 import "html"
 
-main :: proc() {
-    data, ok := os.read_entire_file(os.args[1])
+parse_and_print_html :: proc(file_name: string) {
+    data, ok := os.read_entire_file(file_name)
     if !ok {
-        fmt.eprintfln("Could not open %v", os.args[1])
+        fmt.eprintfln("Could not open %v", file_name)
     }
 
     reader: strings.Reader
@@ -26,7 +26,33 @@ main :: proc() {
     document.document = &document
     html.construct_tree(&parser, &document)
     html.print_document(&document)
+}
 
+parse_and_print_css :: proc(file_name: string) {
+    data, ok := os.read_entire_file(file_name)
+    if !ok {
+        fmt.eprintfln("Could not open %v", file_name)
+    }
+
+    reader: strings.Reader
+    input_stream := strings.to_reader(&reader, string(data[:]))
+
+    tokenizer: css.Css_Tokenizer
+    css.tokenizer_init(&tokenizer, input_stream)
+    
+    for {
+        token := css.get_next_token(&tokenizer)
+        if _, is_eof := token.(css.Eof_Token); is_eof do return 
+        fmt.println(token)
+    }
+}
+
+main :: proc() {
+    if len(os.args) != 3 {
+        fmt.eprintln("Invalid arguments")
+    }
+    if os.args[1] == "-html" do parse_and_print_html(os.args[2])
+    else if os.args[1] == "-css" do parse_and_print_css(os.args[2])
     /*
     init_success := sdl2.Init(sdl2.INIT_VIDEO)
     if init_success < 0 {
